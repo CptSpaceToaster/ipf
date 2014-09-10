@@ -9,7 +9,7 @@
 #include <stdbool.h>
 
 #ifndef F_CPU
-#  error "define F_CPU before idiotprouf.h"
+#  error "define F_CPU before ipf/timer_setup.h"
 #endif
 
 /* Takes in a period in seconds, and sets timer0 to the closest possible value always rounded down */
