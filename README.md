@@ -10,5 +10,5 @@ There are two ways to go about fixing this problem.
 Instead of searching through the [datasheet](http://www.atmel.com/Images/doc8161.pdf), the goal of this library is to get you up and on your feet in a couple of lines, without bothering you to walk through 5 lines of code while alt-tabbing to the specs.
 
 Next Steps:
- - A-D Converter
- - PWM Mode(s)
+ - A-D Converter - Enums for modes, prescalers, and setup
+ - PWM Mode(s)   - Enums for prescalers.  Maybe enums for timer modes... if it's logical to do so
