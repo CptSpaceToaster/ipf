@@ -146,6 +146,11 @@ int timer1_pwm_sec_compare(double Ton, double period, int8_t output_pin, bool en
 	return timer1_pwm_prescaler_compare((uint16_t)cycles_on, (uint16_t)cycles_period, prescaler, output_pin, enable_compare_A, enable_compare_B);
 }
 
+/* A nice shortcut if you don't want to mess with interrupts */
+int timer1_pwm_sec(double Ton, double period, int8_t output_pin, bool enable_compare_A, bool enable_compare_B) {
+	return timer1_pwm_sec(Ton, period, output_pin, false, false);
+}
+
 /* A nice shortcut if you don't want to mess with the prescaler */
 int timer1_pwm_compare(uint16_t Ton, uint16_t period, int8_t output_pin, bool enable_compare_A, bool enable_compare_B) {
 	return timer1_pwm_prescaler_compare(Ton, period, 1, output_pin, enable_compare_A, enable_compare_B);
