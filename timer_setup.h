@@ -147,7 +147,7 @@ int timer1_pwm_sec_compare(double Ton, double period, int8_t output_pin, bool en
 }
 
 /* A nice shortcut if you don't want to mess with interrupts */
-int timer1_pwm_sec(double Ton, double period, int8_t output_pin, bool enable_compare_A, bool enable_compare_B) {
+int timer1_pwm_sec(double Ton, double period, int8_t output_pin) {
 	return timer1_pwm_sec(Ton, period, output_pin, false, false);
 }
 
