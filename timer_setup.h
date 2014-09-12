@@ -106,7 +106,7 @@ int timer1_pwm_prescaler_compare(uint16_t Ton, uint16_t period, uint8_t prescale
 	if (output_pin == 0 || output_pin > 2) {
 		printf("Error: Output pin must be 1, 2, or below 0\n");
 		return 1;
-		} else if (output_pin>0) {
+	} else if (output_pin>0) {
 		DDRB |= _BV(output_pin); // Force output_pin to actually be an OUTPUT
 	}
 	TIMSK1 = _BV(OCIE1A)*enable_compare_A | _BV(OCIE1B)*enable_compare_B;

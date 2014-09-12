@@ -8,7 +8,7 @@
 #include <avr/io.h>
 #include <stdbool.h>
 
-void ADC_init(uint8_t channel, uint8_t adc_prescaler, uint8_t trigger_source, bool left_shift, bool adc_interrupt_enable)
+void ADC_init(uint8_t channel, uint8_t adc_prescaler, uint8_t trigger_source, bool left_aligned, bool adc_interrupt_enable)
 {
 	// Error checking
 	if( channel > 8 || channel < 0 )
@@ -17,8 +17,8 @@ void ADC_init(uint8_t channel, uint8_t adc_prescaler, uint8_t trigger_source, bo
 		return;
 	} 
 
-	if( adc_prescaler != 2 || adc_prescaler != 4 || adc_prescaler != 8 || adc_prescaler != 16 ||
-		adc_prescaler != 32 || adc_prescaler != 64 || adc_prescaler != 128 )
+	if( adc_prescaler != 2 && adc_prescaler != 4 && adc_prescaler != 8 && adc_prescaler != 16 &&
+		adc_prescaler != 32 && adc_prescaler != 64 && adc_prescaler != 128 )
 	{
 		printf("Error: The selected prescaler is not an acceptable value {2, 4, 8, 16, 32, 64, 128}\n");
 		return;
@@ -31,8 +31,8 @@ void ADC_init(uint8_t channel, uint8_t adc_prescaler, uint8_t trigger_source, bo
 	}
 
 	// Set up ADC
-	ADMUX = _BV(ADLAR && left_shift) | channel; // AREF set, so no external ref needed
-	ADCSRA = _BV(ADEN) | _BV(ADATE) | _BV(ADIE && adc_interrupt_enable);
+	ADMUX = _BV(REFS0) | (_BV(ADLAR) * left_aligned) | channel; // AREF set, so no external ref needed
+	ADCSRA = _BV(ADEN) | _BV(ADATE) | _BV(ADIE) * adc_interrupt_enable; // ADC enable, Autotrigger, Interrupt flag
 
 	// Checks the prescaler setting and sets the proper bits in ADCSRA
 	switch(adc_prescaler)
@@ -61,7 +61,7 @@ void ADC_init(uint8_t channel, uint8_t adc_prescaler, uint8_t trigger_source, bo
 	switch(trigger_source)
 	{
 		case 0:
-			ADCSRB |= _BV(ADSC); // free running mode, start conversions
+			ADCSRA |= _BV(ADSC); // free running mode, start conversions
 			break;
 		case 1:
 			ADCSRB |= _BV(ADTS0); // analog comparator
