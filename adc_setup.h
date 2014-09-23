@@ -12,7 +12,7 @@
 #include <avr/io.h>
 #include <stdbool.h>
 
-void ADC_init(uint8_t channel, uint8_t trigger_source, bool left_aligned, bool adc_interrupt_enable)
+void ADC_init(uint8_t channel, uint8_t trigger_source, uint8_t V_ref, bool left_aligned, bool adc_interrupt_enable)
 {
 	uint8_t adc_prescaler;
 
@@ -23,12 +23,14 @@ void ADC_init(uint8_t channel, uint8_t trigger_source, bool left_aligned, bool a
 		return;
 	}
 	if( trigger_source > 7 || trigger_source < 0 ) {
-		printf("Error: The selected trigger source is invalid. Value must be between 0 and 7 (0b000to 0b111)\n");
+		printf("Error: The selected trigger source is invalid. Value must be between 0 and 7 (0b000 to 0b111)\n");
 		return;
 	}
 
 	// Set up ADC
-	ADMUX = _BV(REFS0) | (_BV(ADLAR) * left_aligned) | channel; // AREF set, so no external ref needed
+	ADC_reference_switch(V_ref);
+
+	ADMUX |= (_BV(ADLAR) * left_aligned) | channel;
 	ADCSRA = _BV(ADEN) | _BV(ADATE) | _BV(ADIE) * adc_interrupt_enable; // ADC enable, Autotrigger, Interrupt flag
 
 	ADC_channel_switch(channel); //select channel
@@ -148,6 +150,24 @@ void ADC_channel_switch(uint8_t channel)
 		case 8:
 			ADMUX |= _BV(MUX3);
 			break;
+	}
+}
+
+void ADC_reference_switch(uint8_t V_ref)
+{
+	if( V_ref != 0 || V_ref != 1 || V_ref != 3)	{
+		printf("Error: The selected reference voltage is invalid. Value must be either 0 (External Voltage at AREF)\n, 1 (Internal 5V), or 3 (Internal 1.1V)\n");
+		return;
+	}
+
+	// Set up ADC
+	if( V_ref == 0) {
+		ADMUX &= ~_BV(REFS1) & ~_BV(REFS0); // vref at AREF
+	} else if( V_ref == 1) {
+		ADMUX &= ~_BV(REFS1);
+		ADMUX |= _BV(REFS0); // internal 5v
+	} else {
+		ADMUX |= _BV(REFS1) | _BV(REFS0); // internal 1.1v
 	}
 }
 
