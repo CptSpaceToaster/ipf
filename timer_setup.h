@@ -103,7 +103,7 @@ int timer2_ctc(double period, bool enable_compare_A) {
 
 /* Takes in cycles on, cycles in a period,  which pin is the output (in PortD), and whether or not you want to enable output compare's*/
 int timer0_pwm_prescaler_compare(uint8_t Ton, uint8_t period, uint8_t prescaler, int8_t output_pin, bool enable_compare_A, bool enable_compare_B) {
-	if (output_pin >= 0 && output_pin <= 5 || output_pin > 6) {
+	if ((output_pin >= 0 && output_pin <= 5) || output_pin > 6) {
 		printf("Error: Output pin must be 5, 6, or below 0\n");
 		return 1;
 	} else if (output_pin>0) {
@@ -163,17 +163,22 @@ int timer0_pwm(uint8_t Ton, uint8_t period, int8_t output_pin) {
 
 /* Takes in cycles on, cycles in a period,  which pin is the output (in PortB), and whether or not you want to enable output compare's*/
 int timer1_pwm_prescaler_compare(uint16_t Ton, uint16_t period, uint8_t prescaler, int8_t output_pin, bool enable_compare_A, bool enable_compare_B) {
-	if (output_pin == 0 || output_pin > 2) {
+	if (output_pin < 0) {
+		//do nothing
+	} else if (output_pin == 1) {
+		DDRB |= _BV(output_pin); // Force output_pin to actually be an OUTPUT
+		OCR1A = Ton >> 1;
+	} else if (output_pin == 2) {
+		DDRB |= _BV(output_pin); // Force output_pin to actually be an OUTPUT
+		OCR1B = Ton >> 1;
+	} else {
 		printf("Error: Output pin must be 1, 2, or below 0\n");
 		return 1;
-	} else if (output_pin>0) {
-		DDRB |= _BV(output_pin); // Force output_pin to actually be an OUTPUT
 	}
 	TIMSK1 = _BV(OCIE1A)*enable_compare_A | _BV(OCIE1B)*enable_compare_B;
-	OCR1A = period >> 1; // We are counting up AND down, so we need to half the incoming cycle count to maintain accuracy
-	OCR1B = Ton >> 1;
-	// Allow Timer 1 to control PB1 or PB2, set timer to PWM mode with ceiling at OCR1A
-	TCCR1A = _BV(COM1A1)*(output_pin==1) | _BV(COM1B1)*(output_pin==2) | _BV(WGM11) | _BV(WGM10);
+	ICR1 = period >> 1; // We are counting up AND down, so we need to half the incoming cycle count to maintain accuracy
+	// Allow Timer 1 to control PB1 or PB2, set timer to PWM mode with ceiling at ICR1
+	TCCR1A = _BV(COM1A1)*(output_pin==1) | _BV(COM1B1)*(output_pin==2) | _BV(WGM11);
 	// Start the timer with the given prescaler, finish setting timer to PWM mode with ceiling at OCR1A
 	TCCR1B	= _BV(WGM13) | prescaler;
 	return 0;
@@ -206,16 +211,6 @@ int timer1_pwm_sec_compare(double Ton, double period, int8_t output_pin, bool en
 	return timer1_pwm_prescaler_compare((uint16_t)cycles_on, (uint16_t)cycles_period, prescaler, output_pin, enable_compare_A, enable_compare_B);
 }
 
-/* A nice shortcut if you don't want to mess with interrupts */
-int timer1_pwm_sec(double Ton, double period, int8_t output_pin) {
-	return timer1_pwm_sec_compare(Ton, period, output_pin, false, false);
-}
-
-/* A nice shortcut if you don't want to mess with the prescaler */
-int timer1_pwm_compare(uint16_t Ton, uint16_t period, int8_t output_pin, bool enable_compare_A, bool enable_compare_B) {
-	return timer1_pwm_prescaler_compare(Ton, period, 1, output_pin, enable_compare_A, enable_compare_B);
-}
-
 /* Another nice shortcut if you don't want to mess with interrupts and prescaler */
 int timer1_pwm(uint16_t Ton, uint16_t period, int8_t output_pin) {
 	return timer1_pwm_prescaler_compare(Ton, period, 1, output_pin, false, false);
@@ -223,12 +218,12 @@ int timer1_pwm(uint16_t Ton, uint16_t period, int8_t output_pin) {
 
 /* Takes in cycles on, cycles in a period,  which pin is the output (3 for PB3 and 4 for PD3), and whether or not you want to enable output compare's*/
 int timer2_pwm_prescaler_compare(uint8_t Ton, uint8_t period, uint8_t prescaler, int8_t output_pin, bool enable_compare_A, bool enable_compare_B) {
-	if (output_pin >= 0 && output_pin < 3 || output_pin > 4) {
+	int8_t portd_output_pin = 0;
+	int8_t portb_output_pin = 0;
+	if ((output_pin >= 0 && output_pin < 3) || output_pin > 4) {
 		printf("Error: Output pin must be 3, 4, or below 0\n");
 		return 1;
 	} else {
-		int8_t portd_output_pin = 0;
-		int8_t portb_output_pin = 0;
 		if (output_pin == 4) {
 			DDRD |= _BV(3); // Force output_pin to actually be an OUTPUT
 			portd_output_pin = 3;
