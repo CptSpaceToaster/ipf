@@ -14,6 +14,11 @@
 
 #include <avr/wdt.h>
 
+#define WD_STATUS_INDICATES_WD_RESET       ((MCUSR & 0x01) > 0)
+#define WD_STATUS_INDICATES_BROWNOUT_RESET ((MCUSR & 0x02) > 0)
+#define WD_STATUS_INDICATES_EXTERNAL_RESET ((MCUSR & 0x04) > 0)
+#define WD_STATUS_INDICATES_POWERON_RESET  ((MCUSR & 0x08) > 0)
+
 typedef enum WATCHDOG_MODE {
 	WD_STOPPED,						//00
 	WD_INTERRUPT,					//01
