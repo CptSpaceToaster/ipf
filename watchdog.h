@@ -14,39 +14,45 @@
 
 #include <avr/wdt.h>
 
+// STATUS CHECK
 #define WD_STATUS_INDICATES_WD_RESET       ((MCUSR & 0x01) > 0)
 #define WD_STATUS_INDICATES_BROWNOUT_RESET ((MCUSR & 0x02) > 0)
 #define WD_STATUS_INDICATES_EXTERNAL_RESET ((MCUSR & 0x04) > 0)
 #define WD_STATUS_INDICATES_POWERON_RESET  ((MCUSR & 0x08) > 0)
 
-typedef enum WATCHDOG_MODE {
-	WD_STOPPED,						//00
-	WD_INTERRUPT,					//01
-	WD_SYSTEM_RESET,				//10
-	WD_INTERRUPT_AND_SYSTEM_RESET,	//11
-} WATCHDOG_MODE_t;
+// WATCHDOG_MODES
+#define	WD_STOPPED                     0x0
+#define	WD_INTERRUPT                   0x1
+#define	WD_SYSTEM_RESET                0x2
+#define	WD_INTERRUPT_AND_SYSTEM_RESET  0x3
 
-typedef enum WATCHDOG_TIMEOUT {
-	WD_TIMEOUT_16_MS,
-	WD_TIMEOUT_32_MS,
-	WD_TIMEOUT_64_MS,
-	WD_TIMEOUT_125_MS,
-	WD_TIMEOUT_250_MS,
-	WD_TIMEOUT_500_MS,
-	WD_TIMEOUT_1_S,
-	WD_TIMEOUT_2_S,
-	WD_TIMEOUT_4_S,
-	WD_TIMEOUT_8_S,
-} WATCHDOG_TIMEOUT_t;
-
+// WATCHDOG TIMEOUT INTERVALS
+#define	WD_TIMEOUT_16_MS               0x0
+#define	WD_TIMEOUT_32_MS               0x1
+#define	WD_TIMEOUT_64_MS               0x2
+#define	WD_TIMEOUT_125_MS              0x3
+#define	WD_TIMEOUT_250_MS              0x4
+#define	WD_TIMEOUT_500_MS              0x5
+#define	WD_TIMEOUT_1_S                 0x6
+#define	WD_TIMEOUT_2_S                 0x7
+#define	WD_TIMEOUT_4_S                 0x8
+#define	WD_TIMEOUT_8_S                 0x9
 
 /* Please remember to invoke sei() yourself */
-void watchdog_set(WATCHDOG_MODE_t mode, WATCHDOG_TIMEOUT_t timeout) {
+void watchdog_set(uint8_t mode, uint8_t timeout_interval) {
+	if (mode > 3) {
+		//Error, mode is to high (0 to 3)
+		return;
+	}
+	if (timeout_interval > 9) {
+		//Error, timeout_interval is to high (0 to 9)
+		return;
+	}
 	wdt_reset();
 	// Announce that we are going to change the watchdog timer
 	WDTCSR = _BV(WDCE) | _BV(WDE);
 	// set-clear system reset mode, set-clear interrupt mode, and set the timeout
-	WDTCSR = ((mode & 0x1) * _BV(WDIE)) | (((mode>>1) & 0x1) * _BV(WDE)) | timeout;
+	WDTCSR = ((mode & 0x1) * _BV(WDIE)) | (((mode>>1) & 0x1) * _BV(WDE)) | timeout_interval;
 }
 
 
@@ -55,10 +61,7 @@ void watchdog_set(WATCHDOG_MODE_t mode, WATCHDOG_TIMEOUT_t timeout) {
  *   0000 0010 - Brown out Reset Flag
  *   0000 0100 - External Reset Flag
  *   0000 1000 - Power-On Reset Flag */
-uint8_t watchdog_get_status() {
-	return MCUSR;
-}
-
+#define watchdog_get_status()      MCUSR
 
 /* Clears all of the flags!
  *   Watchdog System Reset Flag
@@ -71,13 +74,8 @@ uint8_t watchdog_get_status() {
  *   condition, the device will be reset and the Watchdog Timer will stay enabled. If the code is not
  *   set up to handle the Watchdog, this might lead to an eternal loop of time-out resets. To avoid this
  *   situation, the application software should always clear the Watchdog System Reset Flag
- *   (WDRF) and the WDE control bit in the initialisation routine */
-void watchdog_clear_status() {
-	MCUSR = 0; //reset all statuses in the control register of the MCU
-}
+ *   (WDRF) and the WDE control bit in the initialization routine */
+#define watchdog_clear_status()    MCUSR = 0 //reset all statuses in the control register of the MCU
 
-
-/* Ya... I know... you want to fight about it? */
-void watchdog_feed() {
-	wdt_reset();
-}
+/* Somewhere, a C-professor is rolling over in his/her grave right now... */
+#define watchdog_feed()            wdt_reset()
