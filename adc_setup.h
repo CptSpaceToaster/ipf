@@ -12,163 +12,146 @@
 #include <avr/io.h>
 #include <stdbool.h>
 
-void ADC_init(uint8_t channel, uint8_t trigger_source, uint8_t V_ref, bool left_aligned, bool adc_interrupt_enable)
-{
-	uint8_t adc_prescaler;
+// ADMUX Register Stuffs
+// ADC Source Pins
+#define	ADC_PC0                             0x00
+#define	ADC_PC1                             0x01
+#define	ADC_PC2                             0x02
+#define	ADC_PC3                             0x03
+#define	ADC_PC4                             0x04
+#define	ADC_PC5                             0x05
+#define	ADC_PC6                             0x06
+#define	ADC_PC7                             0x07
+#define	ADC_INTERNAL_TEMPERATURE_SENSOR     0x08 // Yes, there is no PC8...that's Pin 7 you're thinking about
 
-	// Error checking
-	if( adc_prescaler != 2 && adc_prescaler != 4 && adc_prescaler != 8 && adc_prescaler != 16 &&
-	adc_prescaler != 32 && adc_prescaler != 64 && adc_prescaler != 128 ) {
-		printf("Error: The selected prescaler is not an acceptable value {2, 4, 8, 16, 32, 64, 128}\n");
-		return;
+// Are the numbers left-aligned?
+#define ADC_LEFT_ALIGNED                    0x20 // You normally want this bit SET
+
+// ADC Reference Sources
+#define	ADC_INTERNAL_REFERENCE_OFF			0x00
+#define	ADC_REFERENCE_VCC					0x40 // This is usually 5v, unless you're running the device at 3.3v...... then it's 3.3v
+#define	ADC_REFERENCE_1V1                   0xC0 // This is the 1.1v reference for anyone who's looking
+
+
+
+// ADCSRA Register Stuffs
+// TODO: These are all hard set atm
+
+// ADCSRB Register Stuffs (Trigger source selections)
+#define ADC_FREE_RUNNING_MODE               0x00 // This is the only one I used
+#define ADC_ANALOG_COMPARATOR               0x01 // Not going to lie here... I have no idea what this even is...
+#define ADC_EXTERNAL_INTERRUPT_REQUEST_0    0x02 // Or this..
+#define ADC_TIMER0_COMPARE_MATCH_A          0x03 // Or any of these......
+#define ADC_TIMER0_OVERFLOW                 0x04 
+#define ADC_TIMER1_COMPARE_MATCH_B          0x05
+#define ADC_TIMER1_OVERFLOW                 0x06
+#define ADC_TIMER1_CAPTURE_EVENT            0x07
+
+
+
+uint8_t ADC_reference_switch(uint8_t ADC_reference_source) {
+	if( ADC_reference_source != ADC_INTERNAL_REFERENCE_OFF &&
+	    ADC_reference_source != ADC_REFERENCE_VCC &&
+		ADC_reference_source != ADC_REFERENCE_1V1)	{
+		// Error: The selected reference voltage is invalid. Value must be either ADC_INTERNAL_REFERENCE_OFF, ADC_REFERENCE_VCC, or ADC_REFERENCE_1V1
+		return 1;
 	}
-	if( trigger_source > 7 || trigger_source < 0 ) {
-		printf("Error: The selected trigger source is invalid. Value must be between 0 and 7 (0b000 to 0b111)\n");
-		return;
-	}
-
-	// Set up ADC
-	ADC_reference_switch(V_ref);
-
-	ADMUX |= (_BV(ADLAR) * left_aligned) | channel;
-	ADCSRA = _BV(ADEN) | _BV(ADATE) | _BV(ADIE) * adc_interrupt_enable; // ADC enable, Autotrigger, Interrupt flag
-
-	ADC_channel_switch(channel); //select channel
-
-	// determine appropriate prescaler, F_CPU must be defined before hand!
-	if((F_CPU / 2) > 50000 && (F_CPU / 2) < 200000) {
-		adc_prescaler = 2;
-	} else if((F_CPU / 4) > 50000 && (F_CPU / 4) < 200000) {
-		adc_prescaler = 4;
-	} else if((F_CPU / 8) > 50000 && (F_CPU / 8) < 200000) {
-		adc_prescaler = 8;
-	} else if((F_CPU / 16) > 50000 && (F_CPU / 16) < 200000) {
-		adc_prescaler = 16;
-	} else if((F_CPU / 32) > 50000 && (F_CPU / 32) < 200000) {
-		adc_prescaler = 32;
-	} else if((F_CPU / 64) > 50000 && (F_CPU / 64) < 200000) {
-		adc_prescaler = 64;
-	} else {
-		adc_prescaler = 128;
-	}
-
-	// Checks the prescaler setting and sets the proper bits in ADCSRA
-	switch(adc_prescaler)
-	{
-		case 2:
-			break;
-		case 4:
-			ADCSRA |= _BV(ADPS1); // _BV(1)
-			break;
-		case 8:
-			ADCSRA |= _BV(ADPS1) | _BV(ADPS0); //_BV(1)  | _BV(0)
-			break;
-		case 16:
-			ADCSRA |= _BV(ADPS2); // _BV(2)
-			break;
-		case 32:
-			ADCSRA |= _BV(ADPS2) | _BV(ADPS0); // _BV(2) | _BV(0)
-			break;
-		case 64:
-			ADCSRA |= _BV(ADPS2) | _BV(ADPS1); // _BV(2) | _BV(1)
-			break;
-		case 128:
-			ADCSRA |= _BV(ADPS2) | _BV(ADPS1) | _BV(ADPS0); // _BV(2) | _BV(1) | _BV(0)
-			break;
-	}
-
-	// Checks the trigger source setting and sets the proper bits in ADCSRA
-	switch(trigger_source)
-	{
-		case 0:
-			ADCSRA |= _BV(ADSC); // free running mode, start conversions
-			break;
-		case 1:
-			ADCSRB |= _BV(ADTS0); // analog comparator
-			break;
-		case 2:
-			ADCSRB |= _BV(ADTS1); // external interrupt request 0
-			break;
-		case 3:
-			ADCSRB |= _BV(ADTS1) | _BV(ADTS0); // timer/counter0 compare match A
-			break;
-		case 4:
-			ADCSRB |= _BV(ADTS2); // timer/counter0 overflow
-			break;
-		case 5:
-			ADCSRB |= _BV(ADTS2) | _BV(ADTS0); // timer/counter1 compare match B
-			break;
-		case 6:
-			ADCSRB |= _BV(ADTS1) | _BV(ADTS2); // timer/counter overflow
-			break;
-		case 7:
-			ADCSRB |= _BV(ADTS2) | _BV(ADTS1) | _BV(ADTS0); // timer/counter 1 capture event
-			break;
-	}
+	// Clear the current reference setting
+	ADMUX &= ~(0xC0);
+	// Turn on the bits that matter
+	ADMUX |= ADC_reference_source;
+	return 0;
 }
 
-void ADC_channel_switch(uint8_t channel)
-{
-	// Error check
-	if( channel > 8 || channel < 0 ) {
-		printf("Error: The selected channel is outside the bounds of possible ADC channels 0 to 8.\n");
-		return;
+uint8_t ADC_channel_switch(uint8_t ADC_channel) {
+	if(ADC_channel > 0x08) {
+		// Error: The selected channel is outside the bounds of possible ADC channels 0 to 8.
+		return 1;
 	}
 
 	// select channel
-	switch(channel)
-	{
-		case 0:
-			DDRC &= ~_BV(0);
-			break;
-		case 1:
-			DDRC &= ~_BV(1);
-			ADMUX |= _BV(MUX0);
-			break;
-		case 2:
-			DDRC &= ~_BV(2);
-			ADMUX |= _BV(MUX1);
-			break;
-		case 3:
-			DDRC &= ~_BV(3);
-			ADMUX |= _BV(MUX1) | _BV(MUX0);
-			break;
-		case 4:
-			DDRC &= ~_BV(4);
-			ADMUX |= _BV(MUX2);
-			break;
-		case 5:
-			DDRC &= ~_BV(5);
-			ADMUX |= _BV(MUX2) | _BV(MUX0);
-			break;
-		case 6:
-			ADMUX |= _BV(MUX2) | _BV(MUX1);
-			break;
-		case 7:
-			ADMUX |= _BV(MUX2) | _BV(MUX1) | _BV(MUX0);
-			break;
-		case 8:
-			ADMUX |= _BV(MUX3);
-			break;
-	}
+	DDRC &= ADC_channel; //Set the given bits to inputs, Leave the pull-up resistors alone
+	// Clear the current channel setting
+	ADMUX &= ~(0x0F);
+	// Turn on the bits that matter
+	ADMUX |= ADC_channel;
+	return 0;
 }
 
-void ADC_reference_switch(uint8_t V_ref)
-{
-	if( V_ref != 0 || V_ref != 1 || V_ref != 3)	{
-		printf("Error: The selected reference voltage is invalid. Value must be either 0 (External Voltage at AREF)\n, 1 (Internal 5V), or 3 (Internal 1.1V)\n");
-		return;
+uint8_t ADC_set_trigger(uint8_t ADC_trigger) {
+	if(ADC_trigger > 0x07) {
+		// Error: The selected trigger is outside the bounds of possible ADC channels 0 to 7.
+		return 1;
 	}
 
-	// Set up ADC
-	if( V_ref == 0) {
-		ADMUX &= ~_BV(REFS1) & ~_BV(REFS0); // vref at AREF
-	} else if( V_ref == 1) {
-		ADMUX &= ~_BV(REFS1);
-		ADMUX |= _BV(REFS0); // internal 5v
+	// Clear the current trigger setting
+	ADCSRB &= ~(0x07);
+	// Turn on the bits that matter
+	ADCSRB |= ADC_trigger;
+	return 0;
+}
+
+void ADC_set_alignment(bool is_left_aligned) {
+	// Clear the Left Aligned Bit
+	ADMUX &= ~(ADC_LEFT_ALIGNED);
+	// Set it if it's wanted
+	ADMUX |= ADC_LEFT_ALIGNED * is_left_aligned;
+}
+
+uint8_t ADC_init(uint8_t ADC_channel, uint8_t trigger_source, uint8_t ADC_reference_source, bool is_left_aligned, bool adc_interrupt_enable) {
+	if( trigger_source > 7) {
+		// Error: The selected trigger source is invalid. Value must be between 0 and 7 (0b000 to 0b111)
+		return 1;
+	}
+	
+	uint8_t err;
+	
+	err = ADC_reference_switch(ADC_reference_source);
+	if (err) {
+		return err;
+	}
+	
+	err = ADC_channel_switch(ADC_channel);
+	if (err) {
+		return err;
+	} 
+	
+	err = ADC_set_trigger(trigger_source);
+	if (err) {
+		return err;
+	}
+	
+	// You usually want left (so true)
+	ADC_set_alignment(is_left_aligned);
+
+	// determine appropriate prescaler, F_CPU must be defined before hand!
+	uint8_t adc_prescaler;
+	
+	if((F_CPU / 2) > 50000 && (F_CPU / 2) < 200000) {
+		adc_prescaler = 0x01;
+	} else if((F_CPU / 4) > 50000 && (F_CPU / 4) < 200000) {
+		adc_prescaler = 0x02;
+	} else if((F_CPU / 8) > 50000 && (F_CPU / 8) < 200000) {
+		adc_prescaler = 0x03;
+	} else if((F_CPU / 16) > 50000 && (F_CPU / 16) < 200000) {
+		adc_prescaler = 0x04;
+	} else if((F_CPU / 32) > 50000 && (F_CPU / 32) < 200000) {
+		adc_prescaler = 0x05;
+	} else if((F_CPU / 64) > 50000 && (F_CPU / 64) < 200000) {
+		adc_prescaler = 0x06;
+	} else if((F_CPU / 128) > 50000 && (F_CPU / 128) < 200000) {
+		adc_prescaler = 0x07;
 	} else {
-		ADMUX |= _BV(REFS1) | _BV(REFS0); // internal 1.1v
+		// Error: Your FCPU be like... WAY TO BIG for a pre-scaler of 128 to handle... this library isn't for you!
 	}
+
+	ADCSRA = _BV(ADEN) | _BV(ADATE) | _BV(ADIE) * adc_interrupt_enable | adc_prescaler; // ADC enable, Autotrigger, Interrupt flag, prescaler
+	
+	ADCSRA |= _BV(ADSC); // free running mode, start conversions
+	return 0;
 }
+
+#define	ADC_get_value()        ADCH // Only works if the value is left adjusted.  Also disregards the bottom low bits... they are unreliable according to the spec sheet.
+#define	ADC_get_low_register() ADCL // You shouldn't need this...
 
 #endif //_IPF_ADC_SETUP_

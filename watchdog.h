@@ -21,22 +21,22 @@
 #define WD_STATUS_INDICATES_POWERON_RESET  ((MCUSR & 0x08) > 0)
 
 // WATCHDOG_MODES
-#define	WD_STOPPED                     0x0
-#define	WD_INTERRUPT                   0x1
-#define	WD_SYSTEM_RESET                0x2
-#define	WD_INTERRUPT_AND_SYSTEM_RESET  0x3
+#define	WD_STOPPED                     0x00
+#define	WD_INTERRUPT                   0x01
+#define	WD_SYSTEM_RESET                0x02
+#define	WD_INTERRUPT_AND_SYSTEM_RESET  0x03
 
 // WATCHDOG TIMEOUT INTERVALS
-#define	WD_TIMEOUT_16_MS               0x0
-#define	WD_TIMEOUT_32_MS               0x1
-#define	WD_TIMEOUT_64_MS               0x2
-#define	WD_TIMEOUT_125_MS              0x3
-#define	WD_TIMEOUT_250_MS              0x4
-#define	WD_TIMEOUT_500_MS              0x5
-#define	WD_TIMEOUT_1_S                 0x6
-#define	WD_TIMEOUT_2_S                 0x7
-#define	WD_TIMEOUT_4_S                 0x8
-#define	WD_TIMEOUT_8_S                 0x9
+#define	WD_TIMEOUT_16_MS               0x00
+#define	WD_TIMEOUT_32_MS               0x01
+#define	WD_TIMEOUT_64_MS               0x02
+#define	WD_TIMEOUT_125_MS              0x03
+#define	WD_TIMEOUT_250_MS              0x04
+#define	WD_TIMEOUT_500_MS              0x05
+#define	WD_TIMEOUT_1_S                 0x06
+#define	WD_TIMEOUT_2_S                 0x07
+#define	WD_TIMEOUT_4_S                 0x08
+#define	WD_TIMEOUT_8_S                 0x09
 
 /* Please remember to invoke sei() yourself */
 void watchdog_set(uint8_t mode, uint8_t timeout_interval) {
