@@ -11,8 +11,8 @@
 #include <stdio.h>
 #include <avr/io.h>
 #include <stdbool.h>
-
-// ADMUX Register Stuffs
+//////////////////////////////////////////////////////////////////////////
+// Argument 1
 // ADC Source Pins
 #define	ADC_PC0                             0x00
 #define	ADC_PC1                             0x01
@@ -24,44 +24,26 @@
 #define	ADC_PC7                             0x07
 #define	ADC_INTERNAL_TEMPERATURE_SENSOR     0x08 // Yes, there is no PC8...that's Pin 7 you're thinking about
 
-// Are the numbers left-aligned?
-#define ADC_LEFT_ALIGNED                    0x20 // You normally want this bit SET
-
-// ADC Reference Sources
-#define	ADC_INTERNAL_REFERENCE_OFF			0x00
-#define	ADC_REFERENCE_VCC					0x40 // This is usually 5v, unless you're running the device at 3.3v...... then it's 3.3v
-#define	ADC_REFERENCE_1V1                   0xC0 // This is the 1.1v reference for anyone who's looking
-
-
-
-// ADCSRA Register Stuffs
-// TODO: These are all hard set atm
-
-// ADCSRB Register Stuffs (Trigger source selections)
+// Argument 2
+// Trigger Sources (or operation mode)
 #define ADC_FREE_RUNNING_MODE               0x00 // This is the only one I used
 #define ADC_ANALOG_COMPARATOR               0x01 // Not going to lie here... I have no idea what this even is...
 #define ADC_EXTERNAL_INTERRUPT_REQUEST_0    0x02 // Or this..
 #define ADC_TIMER0_COMPARE_MATCH_A          0x03 // Or any of these......
-#define ADC_TIMER0_OVERFLOW                 0x04 
+#define ADC_TIMER0_OVERFLOW                 0x04
 #define ADC_TIMER1_COMPARE_MATCH_B          0x05
 #define ADC_TIMER1_OVERFLOW                 0x06
 #define ADC_TIMER1_CAPTURE_EVENT            0x07
 
+// Argument 3
+// ADC Reference Sources
+#define	ADC_INTERNAL_REFERENCE_OFF			0x00
+#define	ADC_REFERENCE_VCC					0x40 // This is usually 5v, unless you're running the device at 3.3v...... then it's 3.3v
+#define	ADC_REFERENCE_1V1                   0xC0 // This is the 1.1v reference for anyone who's looking
+// Arguments are done (The next two are booleans)
+//////////////////////////////////////////////////////////////////////////
 
-
-uint8_t ADC_reference_switch(uint8_t ADC_reference_source) {
-	if( ADC_reference_source != ADC_INTERNAL_REFERENCE_OFF &&
-	    ADC_reference_source != ADC_REFERENCE_VCC &&
-		ADC_reference_source != ADC_REFERENCE_1V1)	{
-		// Error: The selected reference voltage is invalid. Value must be either ADC_INTERNAL_REFERENCE_OFF, ADC_REFERENCE_VCC, or ADC_REFERENCE_1V1
-		return 1;
-	}
-	// Clear the current reference setting
-	ADMUX &= ~(0xC0);
-	// Turn on the bits that matter
-	ADMUX |= ADC_reference_source;
-	return 0;
-}
+// TODO: ADCSRA Register Stuffs are all hard set atm
 
 uint8_t ADC_channel_switch(uint8_t ADC_channel) {
 	if(ADC_channel > 0x08) {
@@ -81,7 +63,7 @@ uint8_t ADC_channel_switch(uint8_t ADC_channel) {
 uint8_t ADC_set_trigger(uint8_t ADC_trigger) {
 	if(ADC_trigger > 0x07) {
 		// Error: The selected trigger is outside the bounds of possible ADC channels 0 to 7.
-		return 1;
+		return 2;
 	}
 
 	// Clear the current trigger setting
@@ -91,32 +73,39 @@ uint8_t ADC_set_trigger(uint8_t ADC_trigger) {
 	return 0;
 }
 
+uint8_t ADC_reference_switch(uint8_t ADC_reference_source) {
+	if( ADC_reference_source != ADC_INTERNAL_REFERENCE_OFF &&
+	ADC_reference_source != ADC_REFERENCE_VCC &&
+	ADC_reference_source != ADC_REFERENCE_1V1)	{
+		// Error: The selected reference voltage is invalid. Value must be either ADC_INTERNAL_REFERENCE_OFF, ADC_REFERENCE_VCC, or ADC_REFERENCE_1V1
+		return 3;
+	}
+	// Clear the current reference setting
+	ADMUX &= ~(0xC0);
+	// Turn on the bits that matter
+	ADMUX |= ADC_reference_source;
+	return 0;
+}
+
 void ADC_set_alignment(bool is_left_aligned) {
 	// Clear the Left Aligned Bit
-	ADMUX &= ~(ADC_LEFT_ALIGNED);
+	ADMUX &= ~(0x20);
 	// Set it if it's wanted
-	ADMUX |= ADC_LEFT_ALIGNED * is_left_aligned;
+	ADMUX |= 0x20 * is_left_aligned;
 }
 
 uint8_t ADC_init(uint8_t ADC_channel, uint8_t trigger_source, uint8_t ADC_reference_source, bool is_left_aligned, bool adc_interrupt_enable) {
-	if( trigger_source > 7) {
-		// Error: The selected trigger source is invalid. Value must be between 0 and 7 (0b000 to 0b111)
-		return 1;
-	}
-	
 	uint8_t err;
-	
-	err = ADC_reference_switch(ADC_reference_source);
-	if (err) {
-		return err;
-	}
 	
 	err = ADC_channel_switch(ADC_channel);
 	if (err) {
 		return err;
 	} 
-	
 	err = ADC_set_trigger(trigger_source);
+	if (err) {
+		return err;
+	}
+	err = ADC_reference_switch(ADC_reference_source);
 	if (err) {
 		return err;
 	}
@@ -144,7 +133,7 @@ uint8_t ADC_init(uint8_t ADC_channel, uint8_t trigger_source, uint8_t ADC_refere
 	} else {
 		// Error: Your FCPU be like... WAY TO BIG for a pre-scaler of 128 to handle... this library isn't for you!
 	}
-
+	printf("Hi5\n");
 	ADCSRA = _BV(ADEN) | _BV(ADATE) | _BV(ADIE) * adc_interrupt_enable | adc_prescaler; // ADC enable, Autotrigger, Interrupt flag, prescaler
 	
 	ADCSRA |= _BV(ADSC); // free running mode, start conversions
