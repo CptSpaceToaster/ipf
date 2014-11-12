@@ -66,9 +66,13 @@ uint8_t ADC_set_trigger(uint8_t ADC_trigger) {
 		return 2;
 	}
 
-	// Clear the current trigger setting
-	ADCSRB &= ~(0x07);
+	ADCSRA &= ~(0x20); // Clear the Autotrigger
+	ADCSRB &= ~(0x07); // Clear the trigger setting
+	
 	// Turn on the bits that matter
+	if(ADC_trigger != ADC_FREE_RUNNING_MODE) {
+		ADCSRA |= 0x20; // Assume autotrigger if another trigger source other than "Free Run Mode"
+	}
 	ADCSRB |= ADC_trigger;
 	return 0;
 }
@@ -93,6 +97,10 @@ void ADC_set_alignment(bool is_left_aligned) {
 	// Set it if it's wanted
 	ADMUX |= 0x20 * is_left_aligned;
 }
+
+#define ADC_start_conversion()     ADCSRA |= 0x40
+#define	ADC_get_value()            ADCH // Only works if the value is left adjusted.  Also disregards the bottom low bits... they are unreliable according to the spec sheet.
+#define	ADC_get_low_register()     ADCL // You shouldn't need this...
 
 uint8_t ADC_init(uint8_t ADC_channel, uint8_t trigger_source, uint8_t ADC_reference_source, bool is_left_aligned, bool adc_interrupt_enable) {
 	uint8_t err;
@@ -132,14 +140,12 @@ uint8_t ADC_init(uint8_t ADC_channel, uint8_t trigger_source, uint8_t ADC_refere
 		adc_prescaler = 0x07;
 	} else {
 		// Error: Your FCPU be like... WAY TO BIG for a pre-scaler of 128 to handle... this library isn't for you!
+		return 4;
 	}
 	ADCSRA = _BV(ADEN) | _BV(ADATE) | _BV(ADIE) * adc_interrupt_enable | adc_prescaler; // ADC enable, Autotrigger, Interrupt flag, prescaler
 	
-	ADCSRA |= _BV(ADSC); // free running mode, start conversions
+	ADC_start_conversion(); // if free running mode, start conversions and they'll keep going, otherwise, this will read once.
 	return 0;
 }
-
-#define	ADC_get_value()        ADCH // Only works if the value is left adjusted.  Also disregards the bottom low bits... they are unreliable according to the spec sheet.
-#define	ADC_get_low_register() ADCL // You shouldn't need this...
 
 #endif //_IPF_ADC_SETUP_
