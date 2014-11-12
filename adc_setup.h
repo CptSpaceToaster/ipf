@@ -66,13 +66,8 @@ uint8_t ADC_set_trigger(uint8_t ADC_trigger) {
 		return 2;
 	}
 
-	ADCSRA &= ~(0x20); // Clear the Autotrigger
 	ADCSRB &= ~(0x07); // Clear the trigger setting
-	
 	// Turn on the bits that matter
-	if(ADC_trigger != ADC_FREE_RUNNING_MODE) {
-		ADCSRA |= 0x20; // Assume autotrigger if another trigger source other than "Free Run Mode"
-	}
 	ADCSRB |= ADC_trigger;
 	return 0;
 }
@@ -142,6 +137,7 @@ uint8_t ADC_init(uint8_t ADC_channel, uint8_t trigger_source, uint8_t ADC_refere
 		// Error: Your FCPU be like... WAY TO BIG for a pre-scaler of 128 to handle... this library isn't for you!
 		return 4;
 	}
+	
 	ADCSRA = _BV(ADEN) | _BV(ADATE) | _BV(ADIE) * adc_interrupt_enable | adc_prescaler; // ADC enable, Autotrigger, Interrupt flag, prescaler
 	
 	ADC_start_conversion(); // if free running mode, start conversions and they'll keep going, otherwise, this will read once.
