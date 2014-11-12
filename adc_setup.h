@@ -133,7 +133,6 @@ uint8_t ADC_init(uint8_t ADC_channel, uint8_t trigger_source, uint8_t ADC_refere
 	} else {
 		// Error: Your FCPU be like... WAY TO BIG for a pre-scaler of 128 to handle... this library isn't for you!
 	}
-	printf("Hi5\n");
 	ADCSRA = _BV(ADEN) | _BV(ADATE) | _BV(ADIE) * adc_interrupt_enable | adc_prescaler; // ADC enable, Autotrigger, Interrupt flag, prescaler
 	
 	ADCSRA |= _BV(ADSC); // free running mode, start conversions
