@@ -37,8 +37,8 @@
 
 // Argument 3
 // ADC Reference Sources
-#define	ADC_INTERNAL_REFERENCE_OFF			0x00
-#define	ADC_REFERENCE_VCC					0x40 // This is usually 5v, unless you're running the device at 3.3v...... then it's 3.3v
+#define	ADC_INTERNAL_REFERENCE_OFF          0x00
+#define	ADC_REFERENCE_VCC                   0x40 // This is usually 5v, unless you're running the device at 3.3v...... then it's 3.3v
 #define	ADC_REFERENCE_1V1                   0xC0 // This is the 1.1v reference for anyone who's looking
 // Arguments are done (The next two are booleans)
 //////////////////////////////////////////////////////////////////////////
