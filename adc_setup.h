@@ -34,7 +34,7 @@
 #define ADC_TIMER1_COMPARE_MATCH_B          0x05
 #define ADC_TIMER1_OVERFLOW                 0x06
 #define ADC_TIMER1_CAPTURE_EVENT            0x07
-#define ADC_NO_TRIGGER						0x08
+#define ADC_NO_TRIGGER                      0x08
 
 // Argument 3
 // ADC Reference Sources
@@ -53,7 +53,7 @@ uint8_t ADC_channel_switch(uint8_t ADC_channel) {
 	}
 
 	// select channel
-	DDRC &= ADC_channel; //Set the given bits to inputs, Leave the pull-up resistors alone
+	DDRC &= ~(ADC_channel); //Set the given bits to inputs, Leave the pull-up resistors alone
 	// Clear the current channel setting
 	ADMUX &= ~(0x0F);
 	// Turn on the bits that matter
