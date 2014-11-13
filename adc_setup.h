@@ -34,6 +34,7 @@
 #define ADC_TIMER1_COMPARE_MATCH_B          0x05
 #define ADC_TIMER1_OVERFLOW                 0x06
 #define ADC_TIMER1_CAPTURE_EVENT            0x07
+#define ADC_NO_TRIGGER						0x08
 
 // Argument 3
 // ADC Reference Sources
@@ -61,6 +62,9 @@ uint8_t ADC_channel_switch(uint8_t ADC_channel) {
 }
 
 uint8_t ADC_set_trigger(uint8_t ADC_trigger) {
+	if (ADC_trigger == ADC_NO_TRIGGER) {
+		return 0;
+	}
 	if(ADC_trigger > 0x07) {
 		// Error: The selected trigger is outside the bounds of possible ADC channels 0 to 7.
 		return 2;
@@ -138,7 +142,7 @@ uint8_t ADC_init(uint8_t ADC_channel, uint8_t trigger_source, uint8_t ADC_refere
 		return 4;
 	}
 	
-	ADCSRA = _BV(ADEN) | _BV(ADATE) | _BV(ADIE) * adc_interrupt_enable | adc_prescaler; // ADC enable, Autotrigger, Interrupt flag, prescaler
+	ADCSRA = _BV(ADEN) | _BV(ADATE) * (trigger_source != ADC_NO_TRIGGER) | _BV(ADIE) * adc_interrupt_enable | adc_prescaler; // ADC enable, Autotrigger, Interrupt flag, prescaler
 	
 	ADC_start_conversion(); // if free running mode, start conversions and they'll keep going, otherwise, this will read once.
 	return 0;

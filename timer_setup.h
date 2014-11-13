@@ -113,9 +113,22 @@ int timer0_pwm_prescaler_compare(uint8_t Ton, uint8_t period, uint8_t prescaler,
 	OCR0A = period >> 1; // We are counting up AND down, so we need to half the incoming cycle count to maintain accuracy
 	OCR0B = Ton >> 1;
 	// Allow Timer 0 to control PD5 or PD6, set timer to PWM mode with ceiling at OCR0A
-	TCCR0A = _BV(COM0A1)*(output_pin==5) | _BV(COM0B1)*(output_pin==6) | _BV(WGM00);
+	TCCR0A = _BV(COM0A1)*(output_pin==6) | _BV(COM0B1)*(output_pin==5) | _BV(WGM00);
 	// Start the timer with the given prescaler, finish setting timer to PWM mode with ceiling at OCR0A
 	TCCR0B	= _BV(WGM02) | prescaler;
+	return 0;
+}
+
+int timer0_pwm_prescaler_compare_A(uint8_t Ton, uint8_t prescaler, bool enable_compare_A, bool enable_compare_B) {
+	DDRD |= _BV(6); // Force output_pin to actually be an OUTPUT
+	
+	TIMSK0 = _BV(OCIE0A)*enable_compare_A | _BV(OCIE0B)*enable_compare_B;
+	// OCR0A = period >> 1; // We are counting up AND down, so we need to half the incoming cycle count to maintain accuracy
+	OCR0A = Ton;
+	// Allow Timer 0 to control PD5 or PD6, set timer to PWM mode with ceiling at OCR0A
+	TCCR0A = _BV(COM0A1) | _BV(WGM00);
+	// Start the timer with the given prescaler, finish setting timer to PWM mode with ceiling at 0xFF
+	TCCR0B = prescaler;
 	return 0;
 }
 
