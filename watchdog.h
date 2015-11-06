@@ -10,7 +10,7 @@
  * Datasheets:
  *  http://www.atmel.com/Images/doc8161.pdf - ATMega328P Specsheet
  *  http://www.atmel.com/Images/doc2551.pdf - Using the watchdog timer
- */ 
+ */
 
 #include <avr/wdt.h>
 
@@ -35,8 +35,8 @@
 #define	WD_TIMEOUT_500_MS              0x05
 #define	WD_TIMEOUT_1_S                 0x06
 #define	WD_TIMEOUT_2_S                 0x07
-#define	WD_TIMEOUT_4_S                 0x08
-#define	WD_TIMEOUT_8_S                 0x09
+#define	WD_TIMEOUT_4_S                 0x20
+#define	WD_TIMEOUT_8_S                 0x21
 
 /* Please remember to invoke sei() yourself */
 void watchdog_set(uint8_t mode, uint8_t timeout_interval) {
@@ -44,19 +44,21 @@ void watchdog_set(uint8_t mode, uint8_t timeout_interval) {
 		//Error, mode is to high (0 to 3)
 		return;
 	}
-	if (timeout_interval > 9) {
-		//Error, timeout_interval is to high (0 to 9)
-		return;
-	}
 	wdt_reset();
 	// Announce that we are going to change the watchdog timer
 	WDTCSR = _BV(WDCE) | _BV(WDE);
+
+	// Check for a misplaced WDP3 bit: 0b00001111 versus 0b00100111
+	if (timeout_interval & 0x08)
+		timeout_interval &= ~0x08;
+		timeout_interval |= 0x20;
+
 	// set-clear system reset mode, set-clear interrupt mode, and set the timeout
 	WDTCSR = ((mode & 0x1) * _BV(WDIE)) | (((mode>>1) & 0x1) * _BV(WDE)) | timeout_interval;
 }
 
 
-/* I mean... why not? 
+/* I mean... why not?
  *   0000 0001 - Watchdog System Reset Flag
  *   0000 0010 - Brown out Reset Flag
  *   0000 0100 - External Reset Flag
@@ -67,7 +69,7 @@ void watchdog_set(uint8_t mode, uint8_t timeout_interval) {
  *   Watchdog System Reset Flag
  *   Brown out Reset Flag
  *   External Reset Flag
- *   Power-On Reset Flag 
+ *   Power-On Reset Flag
  *
  * Page 52 - http://www.atmel.com/Images/doc8161.pdf
  * Note: If the Watchdog is accidentally enabled, for example by a runaway pointer or brown-out
